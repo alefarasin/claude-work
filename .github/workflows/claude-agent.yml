@@ -6,8 +6,11 @@ on:
 
 jobs:
   claude-task:
-    # Si attiva solo se la Issue ha il label "claude"
-    if: contains(github.event.issue.labels.*.name, 'claude')
+    # - su "opened": parte solo se il label "claude" Ã¨ giÃ  presente alla creazione
+    # - su "labeled": parte solo se il label appena aggiunto Ã¨ esattamente "claude"
+    if: |
+      (github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'claude')) ||
+      (github.event.action == 'labeled' && github.event.label.name == 'claude')
     runs-on: ubuntu-latest
     permissions:
       contents: write
