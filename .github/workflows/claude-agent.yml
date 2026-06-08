@@ -1,0 +1,74 @@
+name: Claude Agent
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  claude-task:
+    # Si attiva solo se la Issue ha il label "claude"
+    if: contains(github.event.issue.labels.*.name, 'claude')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Configure Git
+        run: |
+          git config user.email "claude-agent@bot.local"
+          git config user.name "Claude Agent"
+
+      - name: Create working branch
+        run: |
+          BRANCH="claude/issue-${{ github.event.issue.number }}"
+          git checkout -b "$BRANCH"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          INSTRUCTION="${{ github.event.issue.title }}: ${{ github.event.issue.body }}"
+          claude --print --dangerously-skip-permissions "$INSTRUCTION"
+
+      - name: Commit and push changes
+        run: |
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Nessuna modifica da committare"
+          else
+            git commit -m "feat: ${{ github.event.issue.title }} (closes #${{ github.event.issue.number }})"
+            git push origin "$BRANCH"
+          fi
+
+      - name: Open Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --title "${{ github.event.issue.title }}" \
+            --body "Risolve #${{ github.event.issue.number }}\n\nGenerato automaticamente da Claude Agent." \
+            --base main \
+            --head "$BRANCH" \
+            || echo "PR giÃ  esistente o nessuna modifica"
+
+      - name: Comment on Issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} \
+            --body "âœ… Claude Agent ha completato il task. Controlla la Pull Request appena aperta!"
