@@ -33,9 +33,15 @@ jobs:
 
       - name: Create working branch
         run: |
-          BRANCH="claude/issue-${{ github.event.issue.number }}"
+          BRANCH="claude/issue-${{ github.event.issue.number }}-$(date +%s)"
           git checkout -b "$BRANCH"
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+
+      - name: Add gitignore rules
+        run: |
+          echo "__pycache__/" >> .gitignore
+          echo "*.pyc" >> .gitignore
+          echo ".pytest_cache/" >> .gitignore
 
       - name: Run Claude Code
         env:
