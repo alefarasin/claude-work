@@ -2,15 +2,12 @@ name: Claude Agent
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [opened]
 
 jobs:
   claude-task:
-    # - su "opened": parte solo se il label "claude" Ã¨ giÃ  presente alla creazione
-    # - su "labeled": parte solo se il label appena aggiunto Ã¨ esattamente "claude"
-    if: |
-      (github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'claude')) ||
-      (github.event.action == 'labeled' && github.event.label.name == 'claude')
+    # Controlla il label SOLO alla creazione della Issue
+    if: contains(github.event.issue.labels.*.name, 'claude')
     runs-on: ubuntu-latest
     permissions:
       contents: write
