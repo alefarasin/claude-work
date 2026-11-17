@@ -47,26 +47,31 @@ jobs:
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
         run: |
-          INSTRUCTION="${{ github.event.issue.title }}: ${{ github.event.issue.body }}"
+          INSTRUCTION="$ISSUE_TITLE: $ISSUE_BODY"
           claude --print --dangerously-skip-permissions "$INSTRUCTION"
 
       - name: Commit and push changes
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
           git add -A
           if git diff --staged --quiet; then
             echo "Nessuna modifica da committare"
           else
-            git commit -m "feat: ${{ github.event.issue.title }} (closes #${{ github.event.issue.number }})"
+            git commit -m "feat: $ISSUE_TITLE (closes #${{ github.event.issue.number }})"
             git push origin "$BRANCH"
           fi
 
       - name: Open Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
           gh pr create \
-            --title "${{ github.event.issue.title }}" \
+            --title "$ISSUE_TITLE" \
             --body "Risolve #${{ github.event.issue.number }}\n\nGenerato automaticamente da Claude Agent." \
             --base main \
             --head "$BRANCH" \
